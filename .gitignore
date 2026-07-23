@@ -484,5 +484,5 @@ $RECYCLE.BIN/
 *.swp
 
 #project
-.\src\Wpm.Management.Api\TextFile.txt
-.\src\github/
+src/Wpm.Management.Api/TextFile.txt
+src/github/
