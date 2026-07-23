@@ -24,16 +24,12 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD }}
 
 
+      - name: Get current date in yyyymmdd format
+        run: echo "DATE_TIME=$(date +'%Y%m%d')" >> $GITHUB_ENV
 
-      - name: Append current date to env
-        run: echo "BUILD_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-
-      - name: Docker build
+      - name: Build and push container image
         run: |
-          docker build \
-            --build-arg BUILD_DATE=${{ env.BUILD_DATE }} \
-            --build-arg RUN_NUMBER=${{ github.run_number }} \
-            -t myregistry.azurecr.io/myapp:${{ github.run_number }} .
-
-      - name: Docker push
-        run: docker push myregistry.azurecr.io/myapp:${{ github.run_number }}
+          docker build src \
+            -f src/Wpm.Management.Api/Dockerfile \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/wpm-management-api:${{ env.DATE_TIME }}.${{ github.run_number }} .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/wpm-management-api:${{ env.DATE_TIME }}.${{ github.run_number }}
