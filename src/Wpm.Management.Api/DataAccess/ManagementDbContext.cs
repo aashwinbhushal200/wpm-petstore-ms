@@ -17,7 +17,8 @@ namespace Wpm.Management.Api.DataAccess
             );
             modelBuilder.Entity<Pet>().HasData([
                 new Pet(){Id=1,Name="kali1", Age=3,BreedId=1},
-                new Pet(){Id=2,Name="kali2", Age=5,BreedId=2}]
+                new Pet(){Id=2,Name="kali2", Age=5,BreedId=2},
+                new Pet(){Id=3,Name="swikky", Age=15,BreedId=1}]
             );
         }
         
