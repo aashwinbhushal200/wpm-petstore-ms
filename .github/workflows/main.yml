@@ -46,3 +46,4 @@ jobs:
             containerAppName: wpm-containerapp
             resourceGroup: pet-store-microservice
             imageToDeploy: ${{ env.IMAGE_TAG }}
+            environmentVariables:Logging__LogLevel__Microsoft.EntityFrameworkCore: Debug
