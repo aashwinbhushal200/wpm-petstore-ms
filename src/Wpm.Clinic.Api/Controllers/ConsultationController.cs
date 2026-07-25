@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Net;
 using Wpm.Clinic.Application;
 
 namespace Wpm.Clinic.Controllers
@@ -21,7 +24,13 @@ namespace Wpm.Clinic.Controllers
         {
             var new_consultation = await _clinicApplicationService.StartConsultation(command);
             return Ok(new_consultation);
-        }   
+        }
+
+        
+
     }
+
+  
+
     public record StartConsultationCommand(int PatientId);
 }

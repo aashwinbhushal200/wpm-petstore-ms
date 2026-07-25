@@ -19,6 +19,8 @@ namespace Wpm.Clinic.Api
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddMemoryCache();
+
             // no need as  AddHttpClient replaces this: builder.Services.AddScoped<ManagementService>();
             builder.Services.AddScoped<ClinicApplicationService>();
             var baseUrl = builder.Configuration.GetValue<string>("WPM:ManagementBaseUrl") ?? "https://localhost:5001";
