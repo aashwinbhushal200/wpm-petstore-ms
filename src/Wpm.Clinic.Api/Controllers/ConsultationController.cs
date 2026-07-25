@@ -16,7 +16,7 @@ namespace Wpm.Clinic.Controllers
             _clinicApplicationService = clinicApplicationService;
         }
 
-        [HttpPost("/start")]
+        [HttpPost("start")]
         public async Task<IActionResult> Start(StartConsultationCommand command)
         {
             var new_consultation = await _clinicApplicationService.StartConsultation(command);
