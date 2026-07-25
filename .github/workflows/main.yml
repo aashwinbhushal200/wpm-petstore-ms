@@ -26,18 +26,26 @@ jobs:
 
       - name: Get current date in yyyymmdd format
         run: echo "DATE_TIME=$(date +'%Y%m%d')" >> $GITHUB_ENV
-      - name: Set image tag
-        run: echo "IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/wpm-management-api:${{ env.DATE_TIME }}.${{ github.run_number }}" >> $GITHUB_ENV
+      - name: Set MANAGEMENT image tag
+        run: echo "MANAGEMENT_IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/wpm-management-api:${{ env.DATE_TIME }}.${{ github.run_number }}" >> $GITHUB_ENV
+      - name: Set clinic image tag
+        run: echo "CLINIC_IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/wpm-clinic-api:${{ env.DATE_TIME }}.${{ github.run_number }}" >> $GITHUB_ENV
 
 
-      - name: Build and push container image
+      - name: Build and push management container image
         run: |
           docker build src \
             -f src/Wpm.Management.Api/Dockerfile \
-            -t ${{ secrets.ACR_LOGIN_SERVER }}/wpm-management-api:${{ env.DATE_TIME }}.${{ github.run_number }} 
-          docker push ${{  env.IMAGE_TAG }}
+            -t ${{env.MANAGEMENT_IMAGE_TAG}} 
+          docker push ${{  env.MANAGEMENT_IMAGE_TAG }}
+      - name: Build and push Clinic container image
+        run: |
+          docker build src \
+            -f src/Wpm.Clinic.Api/Dockerfile \
+            -t ${{ env.CLINIC_IMAGE_TAG }}
+          docker push ${{ env.CLINIC_IMAGE_TAG }}
       
-      - name: Deploy to Container Apps
+      - name: Deploy ManagementApi to Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
             acrName: ${{ secrets.ACR_USERNAME }}
@@ -45,5 +53,16 @@ jobs:
             acrPassword: ${{ secrets.ACR_PASSWORD }}
             containerAppName: wpm-containerapp
             resourceGroup: pet-store-microservice
-            imageToDeploy: ${{ env.IMAGE_TAG }}
-            environmentVariables:Logging__LogLevel__Microsoft.EntityFrameworkCore: Debug
+            imageToDeploy: ${{ env.MANAGEMENT_IMAGE_TAG }}
+            environmentVariables: Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug
+
+      - name: Deploy ClinicApi to Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+            acrName: ${{ secrets.ACR_USERNAME }}
+            acrUsername: ${{ secrets.ACR_USERNAME }}
+            acrPassword: ${{ secrets.ACR_PASSWORD }}
+            containerAppName: wpm-clinic-containerapp
+            resourceGroup: pet-store-microservice
+            imageToDeploy: ${{ env.CLINIC_IMAGE_TAG }}
+            environmentVariables: Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug Wpm__ManagementBaseUrl=http://wpm-containerapp
