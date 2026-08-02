@@ -30,7 +30,8 @@ jobs:
         run: echo "MANAGEMENT_IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/wpm-management-api:${{ env.DATE_TIME }}.${{ github.run_number }}" >> $GITHUB_ENV
       - name: Set clinic image tag
         run: echo "CLINIC_IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/wpm-clinic-api:${{ env.DATE_TIME }}.${{ github.run_number }}" >> $GITHUB_ENV
-
+      - name: Set BillingApi image tag
+        run: echo "BILLINGAPI_IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/wpm-billing-api:${{ env.DATE_TIME }}.${{ github.run_number }}" >> $GITHUB_ENV
 
       - name: Build and push management container image
         run: |
@@ -38,12 +39,20 @@ jobs:
             -f src/Wpm.Management.Api/Dockerfile \
             -t ${{env.MANAGEMENT_IMAGE_TAG}} 
           docker push ${{  env.MANAGEMENT_IMAGE_TAG }}
+
       - name: Build and push Clinic container image
         run: |
           docker build src \
             -f src/Wpm.Clinic.Api/Dockerfile \
             -t ${{ env.CLINIC_IMAGE_TAG }}
           docker push ${{ env.CLINIC_IMAGE_TAG }}
+
+      - name: Build and push BillingApi container image
+        run: |
+          docker build src \
+            -f src/Wpm.Billing.Api/Dockerfile \
+            -t ${{ env.BILLINGAPI_IMAGE_TAG }}
+          docker push ${{ env.BILLINGAPI_IMAGE_TAG }}
       
       - name: Deploy ManagementApi to Container Apps
         uses: azure/container-apps-deploy-action@v2
@@ -66,3 +75,14 @@ jobs:
             resourceGroup: pet-store-microservice
             imageToDeploy: ${{ env.CLINIC_IMAGE_TAG }}
             environmentVariables: Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug Wpm__ManagementBaseUrl=http://wpm-containerapp
+      
+      - name: Deploy BillingApi to Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+            acrName: ${{ secrets.ACR_USERNAME }}
+            acrUsername: ${{ secrets.ACR_USERNAME }}
+            acrPassword: ${{ secrets.ACR_PASSWORD }}
+            containerAppName: wpm-billing-containerapp
+            resourceGroup: pet-store-microservice
+            imageToDeploy: ${{ env.BILLINGAPI_IMAGE_TAG }}
+            environmentVariables: Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug

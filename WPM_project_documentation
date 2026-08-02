@@ -1,0 +1,45 @@
+# Pet Control Project Documentation
+
+## 1. Is it a Microservices Project?
+**Yes**, this project is based on a microservices architecture. It is currently composed of two distinct APIs (services) that have their own domains:
+*   **Wpm.Management.Api**: Responsible for managing the core data, such as Pets and Breeds.
+*   **Wpm.Clinic.Api**: Responsible for handling clinic operations, specifically Consultations.
+
+These services run independently, manage their own data contexts, and communicate over the network, which are the foundational characteristics of a microservices architecture.
+
+## 2. What Architecture Does It Follow?
+*   **Service-Oriented / Microservices**: The system is split by business capability (Management vs. Clinic).
+*   **Decentralized Data**: Each microservice manages its own database context (`ManagementDbContext` and `ClinicDbContext`). Currently, both use Entity Framework Core's In-Memory Database for simplicity, but the code is structured so they can operate on separate physical databases.
+*   **Synchronous Communication**: The `Clinic.Api` calls the `Management.Api` synchronously over HTTP (using `HttpClient`).
+*   **Layered Architecture (Partial)**: `Clinic.Api` introduces an `Application` folder containing `ClinicApplicationService`, which acts as an Application layer to orchestrate business use cases (like starting a consultation). The `Management.Api` is more traditional CRUD, routing straight from Controllers to the Data Access layer.
+
+## 3. What Design Patterns Are Used?
+*   **Dependency Injection (DI)**: Extensively used via ASP.NET Core's built-in DI container. Services like `DbContext`, `ManagementService`, and `IMemoryCache` are injected into constructors.
+*   **Resilience / Retry Pattern**: Used in `Wpm.Clinic.Api` via the **Polly** library. It configures exponential backoff retries when `ManagementService` calls the `Management.Api`. This ensures that transient network faults don't immediately fail a consultation request.
+*   **Cache-Aside Pattern**: `ClinicApplicationService` uses `IMemoryCache` to temporarily store pet information retrieved from `Management.Api`. It first checks the cache; if empty, it fetches from the external API and caches the result. This reduces latency and minimizes cross-service network traffic.
+*   **Repository / Unit of Work Pattern**: Implemented implicitly by Entity Framework Core through `DbContext` (Unit of Work) and `DbSet` (Repository).
+
+## 4. Does It Follow Domain-Driven Design (DDD)?
+**Currently, No.**
+
+While the project has done a good job of identifying **Bounded Contexts** (separating Management from Clinic into different services), the internal implementation of these services does not follow strict DDD principles:
+*   **Anemic Domain Models**: The entities (`Pet`, `Breed`, `Consultation`) are just data containers with public properties or C# `record` types. They lack encapsulated business logic or behavior.
+*   **No Explicit Aggregates or Value Objects**: The entities map directly to database tables without treating core entities as Aggregate Roots that control state changes.
+*   **CRUD-Driven**: Operations in the API (especially Management) are largely CRUD-focused rather than behavior or domain-event driven.
+
+## 5. Should It Follow DDD to Make It a Microservice?
+**It is not strictly required, but it is highly recommended for complex services.**
+
+Microservices do not *have* to use DDD. It is perfectly valid to have simple CRUD microservices (often called "Data Services"). 
+However, as your business logic grows in complexity, DDD becomes incredibly valuable because:
+*   It helps you define strict **Bounded Contexts**, ensuring that microservices do not become tightly coupled.
+*   Rich Domain Models ensure that complex business rules are encapsulated within the entities, making the system robust and preventing invalid states.
+*   It promotes a ubiquitous language between developers and domain experts.
+
+### Recommendations for Further Microservice Development
+If you plan to develop this further (for instance, adding a `Billing.Api` or `Notification.Api`), consider these architectural improvements:
+
+1.  **Adopt Event-Driven Architecture (Asynchronous Communication)**: Currently, services are tightly coupled via synchronous HTTP calls. If `Management.Api` is down, `Clinic.Api` cannot function properly (despite Polly retries). Consider using a Message Broker (like RabbitMQ, Azure Service Bus, or Kafka). `Management.Api` could publish a `PetUpdatedEvent`, and `Clinic.Api` could subscribe to it and keep a local read-only copy of pet data.
+2.  **Implement an API Gateway**: Introduce an API Gateway (like Ocelot or YARP) to act as a single entry point for clients. It can route requests to the appropriate microservices and handle cross-cutting concerns like authentication.
+3.  **Refactor to DDD**: Start by restructuring one of the services (e.g., Clinic) to have explicit Domain, Application, and Infrastructure layers. Make `Consultation` an Aggregate Root with encapsulated behavior (e.g., `consultation.Complete()`) rather than setting properties directly.
+4.  **Persistent Databases**: Swap out the In-Memory databases for actual database engines (e.g., SQL Server, PostgreSQL) using EF Core Migrations, ensuring each service has its own isolated schema or database instance.

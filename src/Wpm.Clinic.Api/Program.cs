@@ -1,4 +1,4 @@
-
+using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Polly;
 using Wpm.Clinic.Application;
@@ -39,7 +39,13 @@ namespace Wpm.Clinic.Api
            
 
             builder.Services.AddDbContext<ClinicDbContext>(options =>
-            { options.UseInMemoryDatabase("WpmClinic"); });
+            { options.UseSqlServer(builder.Configuration.GetConnectionString("ClinicDb"), sqlOptions => sqlOptions.EnableRetryOnFailure()); });
+
+            builder.Services.AddSingleton<Azure.Messaging.ServiceBus.ServiceBusClient>(sp =>
+            {
+                var fullyQualifiedNamespace = builder.Configuration.GetValue<string>("ServiceBusNamespace");
+                return new Azure.Messaging.ServiceBus.ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+            });
 
             var app = builder.Build();
             app.EnsureClinicDbCreated();

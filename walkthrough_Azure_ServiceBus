@@ -1,0 +1,38 @@
+# Walkthrough: Adopting Event-Driven Architecture and Azure SQL Migration
+
+## What was accomplished
+
+We successfully transformed the Pet Control system into an Event-Driven Architecture and migrated the persistent storage to Azure SQL.
+
+### 1. Introduced `Wpm.Shared`
+We created a new class library `Wpm.Shared` to store integration events, ensuring strong typing between our microservices.
+- Created the `ConsultationStartedEvent` contract which includes data like `PatientId`, `ConsultationId`, and `PatientName`.
+
+### 2. Azure SQL Migration	
+We removed all references to the Entity Framework Core In-Memory database provider and replaced it with Azure SQL.
+- Added `Microsoft.EntityFrameworkCore.SqlServer` to `Wpm.Management.Api`, `Wpm.Clinic.Api`, and `Wpm.Billing.Api`.
+- Configured connection strings in `appsettings.json` for each API (using placeholder strings `ManagementDb`, `ClinicDb`, and `BillingDb`).
+
+### 3. Configured Publisher (`Wpm.Clinic.Api`)
+- Installed `MassTransit` and `MassTransit.Azure.ServiceBus.Core`.
+- Updated `ClinicApplicationService` to inject MassTransit's `IPublishEndpoint`.
+- When a consultation is successfully started and saved to the `ClinicDb`, the API now publishes the `ConsultationStartedEvent` to Azure Service Bus.
+
+### 4. Created Consumer (`Wpm.Billing.Api`)
+- Created a brand new ASP.NET Core Web API `Wpm.Billing.Api`.
+- Configured `BillingDbContext` to save Invoices to the `BillingDb` Azure SQL database.
+- Created `ConsultationStartedEventConsumer` using MassTransit.
+- When the consumer receives a `ConsultationStartedEvent` from the Azure Service Bus, it processes the message and generates a `$50.00` base invoice, saving it to the database.
+
+### 5. Updated Documentation
+- Updated the `project_documentation.md` artifact to reflect the new architecture changes.
+
+## Next Steps / Validation
+To get everything running locally:
+1. **Connection Strings:** You must replace the dummy Azure SQL connection strings and Azure Service Bus `Endpoint` strings in the `appsettings.json` of all three APIs with your actual Azure credentials.
+2. **Database Migrations:** Open a terminal in the root of each API project (`Management`, `Clinic`, `Billing`) and run:
+   ```bash
+   dotnet ef migrations add InitialCreate
+   dotnet ef database update
+   ```
+3. **Run Services:** Start all three APIs and hit the `/Consultation` endpoint on `Wpm.Clinic.Api` to test the end-to-end event flow!

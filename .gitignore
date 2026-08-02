@@ -486,3 +486,9 @@ $RECYCLE.BIN/
 #project
 src/Wpm.Management.Api/TextFile.txt
 src/github/
+
+#remove appsettings:
+**/appsettings.*.json
+/src/Wpm.Management.Api/appsettings.json
+/src/Wpm.Clinic.Api/appsettings.json
+/src/Wpm.Billing.Api/appsettings.json

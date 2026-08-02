@@ -14,7 +14,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ManagementDbContext>(options =>
-    { options.UseInMemoryDatabase("WpmManagement"); });
+    { options.UseSqlServer(builder.Configuration.GetConnectionString("ManagementDb"), sqlOptions => sqlOptions.EnableRetryOnFailure()); });
 
 var app = builder.Build();
 
