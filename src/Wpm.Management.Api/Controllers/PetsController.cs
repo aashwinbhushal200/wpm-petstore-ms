@@ -1,14 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using System.Net;
+using System.Text.Json;
+using Azure.Messaging.ServiceBus;
 using Wpm.Management.Api.DataAccess;
+using Wpm.Shared.Events;
 
 namespace Wpm.Management.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PetsController(ManagementDbContext managementDbContext) : ControllerBase
+public class PetsController(ManagementDbContext managementDbContext, ServiceBusClient serviceBusClient) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get()
@@ -28,6 +30,8 @@ public class PetsController(ManagementDbContext managementDbContext) : Controlle
         var NewPet = newPet.ToPet();
         await managementDbContext.Pets.AddAsync(NewPet);
         await managementDbContext.SaveChangesAsync();
+
+        await PublishPetUpdatedEvent(NewPet);
 
         return CreatedAtRoute(nameof(GetById), new { id = NewPet.Id }, NewPet);
     }
@@ -49,12 +53,28 @@ public class PetsController(ManagementDbContext managementDbContext) : Controlle
 
             await managementDbContext.SaveChangesAsync();
 
+            await PublishPetUpdatedEvent(pet);
+
             return Ok(petUpdate);
         }
         catch (Exception ex)
         {
             return StatusCode((int)HttpStatusCode.InternalServerError);
         }
+    }
+
+    private async Task PublishPetUpdatedEvent(Pet pet)
+    {
+        var petUpdatedEvent = new PetUpdatedEvent
+        {
+            Id = pet.Id,
+            Name = pet.Name,
+            Age = pet.Age,
+            BreedId = pet.BreedId
+        };
+        var sender = serviceBusClient.CreateSender("pet-events");
+        var message = new ServiceBusMessage(JsonSerializer.Serialize(petUpdatedEvent));
+        await sender.SendMessageAsync(message);
     }
 
     public record NewPet(string Name, int Age, int BreedId)

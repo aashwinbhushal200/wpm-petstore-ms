@@ -19,12 +19,6 @@ builder.Services.AddSingleton<Azure.Messaging.ServiceBus.ServiceBusClient>(sp =>
     return new Azure.Messaging.ServiceBus.ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
 });
 
-builder.Services.AddSingleton<Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient>(sp =>
-{
-    var fullyQualifiedNamespace = builder.Configuration.GetValue<string>("ServiceBusNamespace");
-    return new Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient(fullyQualifiedNamespace, new DefaultAzureCredential());
-});
-
 builder.Services.AddHostedService<Wpm.Billing.Api.Workers.ServiceBusProcessorWorker>();
 
 var app = builder.Build();

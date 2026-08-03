@@ -2,7 +2,6 @@ using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Polly;
 using Wpm.Clinic.Application;
-using Wpm.Clinic.ExternalServices;
 using Wpm.Management.Api.DataAccess;
 
 namespace Wpm.Clinic.Api
@@ -21,23 +20,8 @@ namespace Wpm.Clinic.Api
             builder.Services.AddSwaggerGen();
             builder.Services.AddMemoryCache();
 
-            // no need as  AddHttpClient replaces this: builder.Services.AddScoped<ManagementService>();
             builder.Services.AddScoped<ClinicApplicationService>();
-            var baseUrl = builder.Configuration.GetValue<string>("WPM:ManagementBaseUrl") ?? "https://localhost:5001";
-            builder.Services.AddHttpClient<ManagementService>(client =>
-            {
-                client.BaseAddress = new Uri(baseUrl);
-            }).AddResilienceHandler("management-pipeline", builder =>
-            {
-                builder.AddRetry(new Polly.Retry.RetryStrategyOptions<HttpResponseMessage>()
-                {
-                    BackoffType = DelayBackoffType.Exponential,
-                    MaxRetryAttempts = 3,
-                    Delay = TimeSpan.FromSeconds(10)
-                });
-            }); ;
-           
-
+            
             builder.Services.AddDbContext<ClinicDbContext>(options =>
             { options.UseSqlServer(builder.Configuration.GetConnectionString("ClinicDb"), sqlOptions => sqlOptions.EnableRetryOnFailure()); });
 
@@ -46,6 +30,8 @@ namespace Wpm.Clinic.Api
                 var fullyQualifiedNamespace = builder.Configuration.GetValue<string>("ServiceBusNamespace");
                 return new Azure.Messaging.ServiceBus.ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
             });
+
+            builder.Services.AddHostedService<Wpm.Clinic.Api.Workers.PetEventsProcessorWorker>();
 
             var app = builder.Build();
             app.EnsureClinicDbCreated();

@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.Swagger;
@@ -15,6 +16,12 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ManagementDbContext>(options =>
     { options.UseSqlServer(builder.Configuration.GetConnectionString("ManagementDb"), sqlOptions => sqlOptions.EnableRetryOnFailure()); });
+
+builder.Services.AddSingleton<Azure.Messaging.ServiceBus.ServiceBusClient>(sp =>
+{
+    var fullyQualifiedNamespace = builder.Configuration.GetValue<string>("ServiceBusNamespace");
+    return new Azure.Messaging.ServiceBus.ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+});
 
 var app = builder.Build();
 
